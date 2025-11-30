@@ -71,7 +71,106 @@ baltimore_tidy |>
   select(term, estimate, conf.low, conf.high)
 ```
 
+Fitting glm for each city 
+```{r}
+city_fits =
+  homicides |>
+  nest(data = -city_state) |>
+  mutate(
+    model = map(
+      data,
+      ~ glm(
+        resolved ~ victim_age + victim_sex + victim_race,
+        data = .x,
+        family = binomial())),
+    results = map(
+      model,
+      ~ tidy(.x, conf.int = TRUE, exponentiate = TRUE))) |>
+  select(city_state, results) |>
+  unnest(results) |>
+  filter(term == "victim_sexMale") |>
+  select(city_state, estimate, conf.low, conf.high)
+```
+
+Plot of Estimated ORs and CIs
+```{r}
+city_fits |>
+  mutate(city_state = fct_reorder(city_state, estimate)) |>
+  ggplot(aes(x = city_state, y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0) +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  coord_flip() +
+  labs(
+    x = "City",
+    y = "Adjusted OR (male vs female)",
+    title = "Adjusted odds of homicide being solved: male vs female victims"
+  )
+```
 
 # Problem 2 
+
+boot strap samples 
+```{r}
+
+data("weather_df")
+set.seed(1)
+
+weather_lm =
+  lm(tmax ~ tmin + prcp, data = weather_df)
+
+boot_straps =
+  weather_df |>
+  bootstrap(n = 5000)
+```
+
+```{r}
+boot_results =
+  boot_straps |>
+  mutate(
+    models = map(strap, ~ lm(tmax ~ tmin + prcp, data = .x)),
+    glance  = map(models, glance),
+    tidy    = map(models, tidy)) |>
+  mutate(
+    r_squared = map_dbl(glance, ~ .x$r.squared),
+    beta_prod = map_dbl(
+      tidy,
+      ~ {
+        b1 = .x |> filter(term == "tmin") |> pull(estimate)
+        b2 = .x |> filter(term == "prcp") |> pull(estimate)
+        b1 * b2}
+    )
+  ) |>
+  select(.id, r_squared, beta_prod)
+```
+
+plot 
+```{r}
+boot_results |>
+  pivot_longer(
+    cols = c(r_squared, beta_prod),
+    names_to = "quantity",
+    values_to = "estimate"
+  ) |>
+  ggplot(aes(x = estimate)) +
+  geom_histogram(bins = 50) +
+  facet_wrap(~ quantity, scales = "free") +
+  labs(
+    title = "Bootstrap distributions of R^2 and β1β2",
+    x = "Estimate",
+    y = "Count"
+  )
+```
+
+95% CI 
+```{r}
+ boot_results |>
+  summarize(
+    r2_lower = quantile(r_squared, 0.025),
+    r2_upper = quantile(r_squared, 0.975),
+    bp_lower = quantile(beta_prod, 0.025),
+    bp_upper = quantile(beta_prod, 0.975)
+  )
+```
 
 # Problem 3 
