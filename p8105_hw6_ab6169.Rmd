@@ -1,0 +1,77 @@
+---
+title: "p8105_hw6_ab6169"
+author: "Amrutha Banda"
+date: "2025-11-30"
+output: github_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(purrr)
+library(broom)
+library(modelr)
+library(p8105.datasets)
+```
+
+# Problem 1 
+
+```{r}
+homicides_raw = 
+  read_csv("data/homicide-data.csv") |>
+  janitor::clean_names()
+
+
+homicides =
+  homicides_raw |>
+  mutate(
+    city_state = str_c(city, state, sep = ", "),
+    resolved = case_when(
+      disposition %in% c("Closed by arrest") ~ 1,
+      disposition %in% c("Open/No arrest")  ~ 0,
+      TRUE ~ NA_real_),
+    victim_race = str_to_lower(victim_race)) |>
+  
+  filter(
+    !city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL"),
+    victim_race %in% c("white", "black")) |>
+  mutate(
+    victim_age = as.numeric(victim_age),
+    victim_sex = factor(victim_sex),
+    victim_race = factor(victim_race),
+    city_state = factor(city_state)) |>
+  drop_na(resolved, victim_age, victim_sex, victim_race)
+```
+
+Baltimore,MD
+```{r}
+baltimore_df =
+  homicides |>
+  filter(city_state == "Baltimore, MD")
+
+baltimore_fit =
+  glm(
+    resolved ~ victim_age + victim_sex + victim_race,
+    data = baltimore_df,
+    family = binomial())
+
+baltimore_tidy =
+  baltimore_fit |>
+  tidy(conf.int = TRUE, exponentiate = TRUE)
+
+baltimore_tidy |>
+  filter(term == "victim_sexMale") |>
+  select(term, estimate, conf.low, conf.high)
+```
+
+
+# Problem 2 
+
+# Problem 3 
