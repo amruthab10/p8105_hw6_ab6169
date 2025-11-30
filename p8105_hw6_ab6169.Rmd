@@ -174,3 +174,10 @@ boot_results |>
 ```
 
 # Problem 3 
+
+```{r}
+birthweight_raw =
+  read_csv("data/birthweight.csv") |>
+  janitor::clean_names()
+```
+
