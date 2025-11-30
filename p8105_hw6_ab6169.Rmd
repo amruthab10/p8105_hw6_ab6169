@@ -245,8 +245,7 @@ bw_fit_a =
 bw_fit_b =
   lm(
     bwt ~ bhead * blength * babysex,
-    data = birthweight
-  )
+    data = birthweight)
 ```
 
 cross validation 
@@ -283,13 +282,13 @@ cv_results =
   cv_df |>
   mutate(
     mod_main = map(train, ~ fit_lm(form_main, .x)),
-    mod_a    = map(train, ~ fit_lm(form_a,    .x)),
-    mod_b    = map(train, ~ fit_lm(form_b,    .x))
+    mod_a  = map(train, ~ fit_lm(form_a, .x)),
+    mod_b = map(train, ~ fit_lm(form_b, .x))
   ) |>
   mutate(
     rmse_main = map2_dbl(mod_main, test, rmse_lm),
-    rmse_a    = map2_dbl(mod_a,    test, rmse_lm),
-    rmse_b    = map2_dbl(mod_b,    test, rmse_lm)
+    rmse_a = map2_dbl(mod_a, test, rmse_lm),
+    rmse_b = map2_dbl(mod_b, test, rmse_lm)
   )
 
 #pivoting
