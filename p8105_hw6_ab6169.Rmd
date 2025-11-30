@@ -181,3 +181,134 @@ birthweight_raw =
   janitor::clean_names()
 ```
 
+```{r}
+birthweight =
+  birthweight_raw |>
+  mutate(
+    babysex = factor(babysex, levels = c(1, 2), labels = c("male", "female")),
+    frace   = factor(frace),
+    mrace   = factor(mrace),
+    malform = factor(malform, levels = c(0, 1), labels = c("absent", "present"))
+  )
+
+birthweight |>
+  summarize(across(everything(), ~ sum(is.na(.)))) #checked for missing data 
+```
+
+Regression
+```{r}
+bw_fit_main =
+  lm(
+    bwt ~ gaweeks + blength + bhead + babysex +
+      wtgain + ppbmi + smoken + momage + mrace,
+    data = birthweight
+  )
+
+bw_fit_main |> tidy()
+bw_fit_main |> glance()
+```
+
+
+Residuals vs Fitted plot 
+```{r}
+birthweight_resid =
+  birthweight |>
+  add_predictions(bw_fit_main) |>
+  add_residuals(bw_fit_main)
+
+birthweight_resid |>
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point(alpha = 0.3) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(
+    x = "Fitted values",
+    y = "Residuals",
+    title = "Residuals vs fitted values for birthweight model"
+  )
+```
+Comments: 
+
+
+Comparison
+
+*length at birth and gestational age*
+```{r}
+bw_fit_a =
+  lm(bwt ~ blength + gaweeks, data = birthweight)
+```
+
+*head circumference, length, sex, and all interactions*
+```{r}
+bw_fit_b =
+  lm(
+    bwt ~ bhead * blength * babysex,
+    data = birthweight
+  )
+```
+
+cross validation 
+```{r}
+
+set.seed(1)
+
+#defined the formulas 
+form_main = bwt ~ gaweeks + blength + bhead + babysex +
+  wtgain + ppbmi + smoken + momage + mrace
+
+form_a = bwt ~ blength + gaweeks
+
+form_b = bwt ~ bhead * blength * babysex
+
+cv_df =
+  crossv_mc(birthweight, n = 100, test = 0.2) |>
+  mutate(
+    train = map(train, as_tibble),
+    test  = map(test,  as_tibble)
+  )
+
+fit_lm = function(formula, data) {
+  lm(formula, data = data)
+}
+
+rmse_lm = function(model, data) {
+  pred = predict(model, newdata = data)
+  sqrt(mean((data$bwt - pred)^2))
+}
+
+#Fitting all 3 models
+cv_results =
+  cv_df |>
+  mutate(
+    mod_main = map(train, ~ fit_lm(form_main, .x)),
+    mod_a    = map(train, ~ fit_lm(form_a,    .x)),
+    mod_b    = map(train, ~ fit_lm(form_b,    .x))
+  ) |>
+  mutate(
+    rmse_main = map2_dbl(mod_main, test, rmse_lm),
+    rmse_a    = map2_dbl(mod_a,    test, rmse_lm),
+    rmse_b    = map2_dbl(mod_b,    test, rmse_lm)
+  )
+
+#pivoting
+cv_results_long =
+  cv_results |>
+  select(starts_with("rmse_")) |>
+  pivot_longer(
+    cols = everything(),
+    names_to = "model",
+    values_to = "rmse",
+    names_prefix = "rmse_"
+  ) |>
+  mutate(model = fct_inorder(model))
+
+#Violin Plot 
+cv_results_long |>
+  ggplot(aes(x = model, y = rmse)) +
+  geom_violin(trim = FALSE) +
+  labs(
+    x = "Model",
+    y = "RMSE",
+    title = "Cross-validated prediction error for birthweight models"
+  )
+```
+
