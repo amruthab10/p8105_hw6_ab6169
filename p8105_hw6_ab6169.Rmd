@@ -107,6 +107,7 @@ city_fits |>
     title = "Adjusted odds of homicide being solved: male vs female victims"
   )
 ```
+Comments:  The plot shows that the odds ratios differ a lot from city to city. Some cities have estimates above 1, meaning cases with male victims seem more likely to be solved there. Other cities have estimates below 1, meaning cases with male victims seem less likely to be solved. In many cities, the confidence intervals are wide and include 1, so there is no clear difference between male and female victims. Overall, the results vary by city and in many places, the evidence is not very strong in either direction.
 
 # Problem 2 
 
@@ -208,7 +209,6 @@ bw_fit_main |> tidy()
 bw_fit_main |> glance()
 ```
 
-
 Residuals vs Fitted plot 
 ```{r}
 birthweight_resid =
@@ -226,7 +226,10 @@ birthweight_resid |>
     title = "Residuals vs fitted values for birthweight model"
   )
 ```
-Comments: 
+Description: For my main model, I chose predictors that are directly related to how a baby grows and factors that can affect birthweight. I included gestational age, length at birth, and head circumference because these measure the baby’s size and development. I also added baby sex, maternal weight gain, pre pregnancy BMI, smoking during pregnancy, maternal age, and maternal race, since these are common factors that can influence birthweight. This gave me a model that includes both newborn measurements and key maternal characteristics.
+
+To check how well the model fits, I used add_predictions and add_residuals to make a residuals versus fitted values plot. The residuals are centered around zero and do not show a strong pattern, which suggests the model is reasonable. There is some variation in the residuals at higher fitted values, but overall the plot does not show major problems like strong curvature or obvious trends.
+
 
 
 Comparison
