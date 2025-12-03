@@ -9,8 +9,7 @@ output: github_document
 knitr::opts_chunk$set(
   echo = TRUE,
   message = FALSE,
-  warning = FALSE
-)
+  warning = FALSE)
 
 library(tidyverse)
 library(janitor)
@@ -22,7 +21,6 @@ library(p8105.datasets)
 ```
 
 # Problem 1 
-
 ```{r}
 homicides_raw = 
   read_csv("data/homicide-data.csv") |>
@@ -39,11 +37,11 @@ homicides =
       TRUE ~ NA_real_),
     victim_race = str_to_lower(victim_race)) |>
   
-  filter(
+  filter( #omitting cities 
     !city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL"),
-    victim_race %in% c("white", "black")) |>
+    victim_race %in% c("white", "black")) |> #limiting analysis to white and black
   mutate(
-    victim_age = as.numeric(victim_age),
+    victim_age = as.numeric(victim_age), #made it numeric 
     victim_sex = factor(victim_sex),
     victim_race = factor(victim_race),
     city_state = factor(city_state)) |>
@@ -57,7 +55,7 @@ baltimore_df =
   filter(city_state == "Baltimore, MD")
 
 baltimore_fit =
-  glm(
+  glm( #logistic regression 
     resolved ~ victim_age + victim_sex + victim_race,
     data = baltimore_df,
     family = binomial())
@@ -111,7 +109,7 @@ Comments:  The plot shows that the odds ratios differ a lot from city to city. S
 
 # Problem 2 
 
-boot strap samples 
+Bootstrap samples 
 ```{r}
 
 data("weather_df")
@@ -131,7 +129,7 @@ boot_results =
   mutate(
     models = map(strap, ~ lm(tmax ~ tmin + prcp, data = .x)),
     glance  = map(models, glance),
-    tidy    = map(models, tidy)) |>
+    tidy = map(models, tidy)) |>
   mutate(
     r_squared = map_dbl(glance, ~ .x$r.squared),
     beta_prod = map_dbl(
@@ -151,8 +149,7 @@ boot_results |>
   pivot_longer(
     cols = c(r_squared, beta_prod),
     names_to = "quantity",
-    values_to = "estimate"
-  ) |>
+    values_to = "estimate") |>
   ggplot(aes(x = estimate)) +
   geom_histogram(bins = 50) +
   facet_wrap(~ quantity, scales = "free") +
@@ -162,6 +159,8 @@ boot_results |>
     y = "Count"
   )
 ```
+Description: In this plot, the R squared values are tightly grouped and form a narrow peak, which means the model gives very similar R squared values across the bootstrap samples. The beta product values have a wider spread but still form a fairly symmetric shape centered near zero. Overall, both distributions look smooth and the bootstrap results show how much these estimates can vary when the data are resampled.
+
 
 95% CI 
 ```{r}
@@ -173,6 +172,8 @@ boot_results |>
     bp_upper = quantile(beta_prod, 0.975)
   )
 ```
+To form the 95 percent confidence intervals, I took the 2.5th and 97.5th percentiles of the 5000 bootstrap estimates. For R squared, the interval is roughly 0.934 to 0.947, which is very narrow and matches the tight distribution in the histogram. For the product of the two coefficients, the interval goes from about -0.0082 to -0.0037. This interval is wider and reflects the greater variation in the beta product compared to R squared. These percentile intervals give a sense of the range of values we would expect for each quantity across repeated samples.
+
 
 # Problem 3 
 
@@ -313,4 +314,4 @@ cv_results_long |>
     title = "Cross-validated prediction error for birthweight models"
   )
 ```
-
+Description: To compare the three models, I used cross-validated RMSE as the measure of prediction error. The simpler model with only length and gestational age (model a) has the highest RMSE values. This means it does not predict birthweight as well as the other models. The interaction model (model b) has lower RMSE than model a, but it shows more variability across the cross-validation splits, likely because it is a more complex model with many terms. My main model generally has the lowest RMSE and is also more stable across the different resampled datasets. This suggests that my main model provides the best balance between including important predictors and maintaining good predictive performance.
